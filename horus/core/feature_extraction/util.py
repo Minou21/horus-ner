@@ -15,7 +15,7 @@ import nltk
 from horus.core.util.definitions_sql import SQL_SENTENCE_SAVE
 from horus.core.util.nlp_tools import NLPTools
 from horus.core.util.sqlite_helper import SQLiteHelper, HorusDB
-from horus.core.search_engines import query_bing, query_flickr, query_wikipedia
+from horus.core.search_engines import query_bing, query_flickr, query_wikipedia, query_babelnet
 from horus.core.util import definitions
 from horus.core.util.nlp_tools import NLPTools
 from horus.core.util.sqlite_helper import SQLiteHelper, HorusDB
@@ -967,10 +967,16 @@ class Util(object):
                                 metaquery, result_txts, result_imgs = query_bing(term,
                                                                                  key=self.config.search_engine_key,
                                                                                  top=self.config.search_engine_tot_resources)
+
+
                             # Flickr
                             elif (self.config.search_engine_api) == 3:
                                 metaquery, result_imgs = query_flickr(term)
                                 metaquery, result_txts = query_wikipedia(term)
+							
+							# Babelnet
+                            if int(self.config.search_engine_api) == 4:
+                                metaquery, result_txts, results_imgs = query_babelnet(term, key=self.config.search_engine_key)
 
                             '''
                             --------------------------------------------------------------------------

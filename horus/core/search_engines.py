@@ -3,6 +3,8 @@ import urllib2
 import urllib
 import requests
 import json
+from StringIO import StringIO
+import gzip
 
 #TODO: to implement
 def query_wikipedia(query):
@@ -31,6 +33,18 @@ def query_bing(query, key, top, market='en-us', safe='Moderate', source='Web', v
         return __bing_api5(query, key, top, market, safe)
     else:
         raise Exception('bing api version not implemented')
+		
+def query_babelnet(word, key, srcLang='EN'):
+
+    url='https://babelnet.io/v5/getVersion?key=%s' % (key)
+    result = __request_babelnet_url(url)
+    if result is None:
+        return word, None, None
+    elif result['version'] == 'V4_0':
+        return __babelnet_api4(word, key, srcLang)
+    else:
+        raise Exception('babelnet api version not implemented')
+ 
 
 def __bing_api5(query, key, top, market, safe):
     # https://msdn.microsoft.com/en-us/library/dn760794(v=bsynd.50).aspx
@@ -93,6 +107,8 @@ def __bing_api2(query, key, top, market, source):
         return query, None
 
 
+
+
 '''
 def bing_api(query, api, source_type="Web", top=10, format='json', market='en-US'):
     """Returns the decoded json response content
@@ -131,6 +147,75 @@ def bing_api(query, api, source_type="Web", top=10, format='json', market='en-US
         logging.error(':: an error has occurred: ', e)
         raise
 '''
+
+def __request_babelnet_url(url):
+    request = urllib2.Request(url)
+    request.add_header('Accept-encoding', 'gzip')
+    requestOpener = urllib2.build_opener()
+    response = requestOpener.open(request)
+
+    if response.code != 200:
+        return None
+
+    if response.info().get('Content-Encoding') ==  'gzip':
+        buf = StringIO(response.read())
+        f = gzip.GzipFile(fileobj = buf)
+        results = json.loads(f.read())
+        return results
+
+    return None
+
+def __babelnet_api4(word, key, srcLang):
+
+    #try:
+        url = 'https://babelnet.io/v5/getSynsetIds?'+ \
+              'lemma=%s&searchLang=%s&key=%s' % (word, srcLang, key)
+
+        results = __request_babelnet_url(url)
+        if results is None:
+            return word, None, None
+
+        resulttxts = []
+        resultimgs = []
+        for result in results:
+            suburl = 'https://babelnet.io/v5/getSynset?' + \
+                'id=%s&key=%s' % (result['id'], key)
+
+            subresult = __request_babelnet_url(suburl)
+            if subresult is None:
+                continue
+            resulttxt = {}
+            resulttxt['id'] = result['id']
+            resulttxt['name'] = subresult['mainSense']
+            resulttxt['displayUrl'] = 'live.babelnet.org/synset?word=%s&lang=%s' % (result['id'], srcLang)#''    #nothing found which could equals the meaning in bing.
+            glosses = subresult['glosses']
+            if len(glosses) > 0:
+                resulttxt['snippet'] = glosses[0]['gloss']
+            else:	
+                resulttxt['snippet'] = ''
+
+            resulttxts.append(resulttxt)
+            resultimg ={}
+            images = subresult['images']
+            if len(images) > 0:
+                resultimg['contentUrl'] = images[0]['url']
+                resultimg['thumbnailUrl'] = images[0]['thumbUrl']
+                resultimg['name'] = images[0]['name']
+            else:
+                resultimg['contentUrl'] = ''
+                resultimg['thumbnailUrl'] = ''
+                resultimg['name'] = ''
+				
+            resultimg['encodingFormat'] = ''        #no information given 
+            resultimg['width'] = ''     #no information given
+            resultimg['height'] = ''    #no information given
+			
+            resultimgs.append(resultimg)
+        return word, resulttxts, resultimgs
+
+    #except Exception as e:
+    #    print (':: an error has occurred: ', e)
+    #    return word, None, None
 
 def main():
     out = query_microsoft_graph('microsoft', 10)
