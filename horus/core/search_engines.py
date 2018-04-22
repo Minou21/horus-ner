@@ -167,7 +167,7 @@ def __request_babelnet_url(url):
 
 def __babelnet_api4(word, key, srcLang):
 
-    #try:
+    try:
         url = 'https://babelnet.io/v5/getSynsetIds?'+ \
               'lemma=%s&searchLang=%s&key=%s' % (word, srcLang, key)
 
@@ -213,9 +213,9 @@ def __babelnet_api4(word, key, srcLang):
             resultimgs.append(resultimg)
         return word, resulttxts, resultimgs
 
-    #except Exception as e:
-    #    print (':: an error has occurred: ', e)
-    #    return word, None, None
+    except Exception as e:
+        print (':: an error has occurred: ', e)
+        return word, None, None
 
 def main():
     out = query_microsoft_graph('microsoft', 10)
